@@ -27,9 +27,15 @@ export function AppHeader() {
           </Link>
           <Link
             href="/trips"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="inline-flex min-h-10 items-center text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
             Trips
+          </Link>
+          <Link
+            href="/recipients"
+            className="inline-flex min-h-10 items-center text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            People
           </Link>
         </nav>
         <Suspense fallback={null}>

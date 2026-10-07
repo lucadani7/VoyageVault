@@ -16,79 +16,36 @@ import {
 } from "drizzle-orm/pg-core";
 // Relative path on purpose: drizzle-kit reads this file without the "@/" alias.
 import { VISIT_STATUSES } from "../lib/visit-status";
+import {
+  AGE_GROUPS,
+  INTEREST_TAGS,
+  type InterestTag,
+  PRICE_TIERS,
+  RECOMMENDATION_STATUSES,
+  RELATIONSHIPS,
+  SOUVENIR_CATEGORIES,
+} from "../lib/vocabulary";
 
 /* ------------------------------------------------------------------ */
-/* Shared vocabularies (also used by forms and the recommender)        */
+/* Shared vocabularies live in lib/vocabulary.ts; re-exported here      */
 /* ------------------------------------------------------------------ */
 
-export const RELATIONSHIPS = [
-  "family",
-  "friend",
-  "acquaintance",
-  "classmate",
-  "coworker",
-] as const;
-
-export const AGE_GROUPS = ["child", "teen", "adult", "senior"] as const;
-
-export const SOUVENIR_CATEGORIES = [
-  "food",
-  "drink",
-  "clothing",
-  "accessory",
-  "jewelry",
-  "decor",
-  "toy",
-  "craft",
-  "art",
-  "book",
-  "cosmetics",
-  "music",
-] as const;
-
-export const PRICE_TIERS = ["budget", "mid", "premium"] as const;
-
-export const RECOMMENDATION_STATUSES = [
-  "suggested",
-  "bought",
-  "dismissed",
-] as const;
-
-/**
- * Interest tags. A recipient's `interests` are matched against a souvenir's
- * `tags`, so both columns draw from this single list.
- */
-export const INTEREST_TAGS = [
-  "food",
-  "sweets",
-  "drinks",
-  "cooking",
-  "fashion",
-  "home-decor",
-  "art",
-  "history",
-  "tradition",
-  "science",
-  "tech",
-  "sports",
-  "music",
-  "books",
-  "nature",
-  "toys",
-  "games",
-  "jewelry",
-  "beauty",
-  "crafts",
-  "humor",
-  "collectibles",
-] as const;
-
-export type Relationship = (typeof RELATIONSHIPS)[number];
-export type AgeGroup = (typeof AGE_GROUPS)[number];
-export type SouvenirCategory = (typeof SOUVENIR_CATEGORIES)[number];
-export type PriceTier = (typeof PRICE_TIERS)[number];
-export type RecommendationStatus = (typeof RECOMMENDATION_STATUSES)[number];
-export type InterestTag = (typeof INTEREST_TAGS)[number];
+export {
+  AGE_GROUPS,
+  INTEREST_TAGS,
+  PRICE_TIERS,
+  RECOMMENDATION_STATUSES,
+  RELATIONSHIPS,
+  SOUVENIR_CATEGORIES,
+};
+export type {
+  AgeGroup,
+  InterestTag,
+  PriceTier,
+  RecommendationStatus,
+  Relationship,
+  SouvenirCategory,
+} from "../lib/vocabulary";
 
 export const relationshipEnum = pgEnum("relationship", RELATIONSHIPS);
 export const ageGroupEnum = pgEnum("age_group", AGE_GROUPS);
