@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -15,6 +16,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 // Relative path on purpose: drizzle-kit reads this file without the "@/" alias.
+import type { Shop } from "@/lib/shops/overpass";
 import { VISIT_STATUSES } from "@/lib/visit-status";
 import {
   AGE_GROUPS,
@@ -262,6 +264,19 @@ export const souvenirTranslations = pgTable(
   },
   (t) => [primaryKey({ columns: [t.souvenirId, t.locale] })],
 );
+
+/**
+ * Cache of shop searches around a point, so the free OpenStreetMap service
+ * is asked about each area only once in a while.
+ */
+export const shopSearches = pgTable("shop_searches", {
+  /** "lat,lng,radius", with coordinates rounded to about 100 m. */
+  key: text("key").primaryKey(),
+  shops: jsonb("shops").$type<Shop[]>().notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 /**
  * Two lines of context per country and language: what it is known for, and

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { EXPORT_FORMATS } from "./export/recommendations";
+import { SHOP_KINDS } from "./shops/overpass";
 import {
   decisionSchema,
   recipientSchema,
@@ -138,6 +139,27 @@ export const openApiDocument = {
         responses: { "204": { description: "Removed." }, "401": errors["401"], "404": errors["404"] },
       },
     },
+    "/trips/{id}/stops/{stopId}/shops": {
+      parameters: [idParam("id", "Trip id"), idParam("stopId", "Stop id")],
+      get: {
+        tags: ["Recommendations"],
+        summary: "Places near a stop where souvenirs can be bought",
+        description:
+          "Gift and craft shops, markets, sweet shops, antique dealers and museums from OpenStreetMap, nearest first. " +
+          "Looks within 3 km of a city and 15 km of a region; results are cached for a week. " +
+          "`located` is false for older stops saved without coordinates.",
+        responses: {
+          "200": okJson("Up to 60 places.", {
+            type: "object",
+            required: ["shops", "located"],
+            properties: { shops: { type: "array", items: ref("Shop") }, located: { type: "boolean" } },
+          }),
+          "401": errors["401"],
+          "404": errors["404"],
+          "502": { description: "The map data service is unavailable.", content: json(ref("Error")) },
+        },
+      },
+    },
     "/places": {
       get: {
         tags: ["Trips"],
@@ -269,6 +291,21 @@ export const openApiDocument = {
       StopInput: input(stopSchema),
       RecipientInput: input(recipientSchema),
       Decision: input(decisionSchema),
+      Shop: {
+        type: "object",
+        required: ["id", "name", "kind", "lat", "lng", "distance"],
+        properties: {
+          id: { type: "string", example: "node/123", description: "OpenStreetMap reference" },
+          name: { type: "string" },
+          kind: { type: "string", enum: SHOP_KINDS },
+          lat: { type: "number" },
+          lng: { type: "number" },
+          distance: { type: "integer", description: "Metres from the centre of the stop" },
+          address: nullable({ type: "string" }),
+          website: nullable({ type: "string", format: "uri" }),
+          openingHours: nullable({ type: "string", description: "In OpenStreetMap's opening_hours syntax" }),
+        },
+      },
       TripSummary: {
         type: "object",
         required: ["id", "name", "stopCount"],

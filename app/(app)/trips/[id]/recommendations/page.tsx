@@ -21,6 +21,7 @@ import {
   type RecommendationStatus,
   RELATIONSHIP_LABELS,
 } from "@/lib/vocabulary";
+import { StopShops } from "@/components/shops/stop-shops";
 import { setRecommendationStatus } from "./actions";
 
 type Props = { params: Promise<{ id: string }> };
@@ -191,6 +192,14 @@ export default async function RecommendationsPage({ params }: Props) {
                   The catalogue has nothing specific to this place yet, so
                   these are ideas that work anywhere.
                 </p>
+              )}
+
+              {stop.lat !== null && stop.lng !== null && (
+                <StopShops
+                  tripId={trip.id}
+                  stopId={stop.id}
+                  center={{ lat: stop.lat, lng: stop.lng }}
+                />
               )}
 
               <div className="mt-6 flex flex-col gap-6">
