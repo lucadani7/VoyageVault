@@ -20,8 +20,8 @@ async function UserMenu() {
 export function AppHeader() {
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
-      <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-3">
-        <nav className="flex items-center gap-4 sm:gap-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-x-4 px-4 py-2">
+        <nav className="flex flex-wrap items-center gap-x-4 sm:gap-x-6">
           <Link href="/trips" className="whitespace-nowrap font-semibold tracking-tight">
             VoyageVault
           </Link>
@@ -36,6 +36,12 @@ export function AppHeader() {
             className="inline-flex min-h-10 items-center text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
             People
+          </Link>
+          <Link
+            href="/catalogue"
+            className="inline-flex min-h-10 items-center text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Catalogue
           </Link>
         </nav>
         <Suspense fallback={null}>

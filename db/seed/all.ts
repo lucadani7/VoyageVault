@@ -6,6 +6,7 @@ import { europe } from "./countries/europe";
 import { featured } from "./countries/featured";
 import { oceania } from "./countries/oceania";
 import type { CountryNotes } from "./define";
+import { generic } from "./generic";
 
 const countries = [
   ...featured,
@@ -23,4 +24,5 @@ export const allNotes: CountryNotes[] = countries.map((entry) => entry.notes);
 export const allSouvenirs: CatalogEntry[] = [
   ...featuredSouvenirs,
   ...countries.flatMap((entry) => entry.entries),
+  ...generic,
 ];

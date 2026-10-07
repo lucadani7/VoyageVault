@@ -6,6 +6,12 @@ const CODES =
 
 const CODE_SET = new Set(CODES);
 
+/**
+ * Pseudo country code for catalogue entries that fit any destination.
+ * "ZZ" is reserved by ISO for exactly this kind of private use.
+ */
+export const ANYWHERE = "ZZ";
+
 export function isCountryCode(value: string): boolean {
   return CODE_SET.has(value);
 }

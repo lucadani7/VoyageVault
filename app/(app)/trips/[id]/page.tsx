@@ -5,7 +5,11 @@ import { deleteStop } from "@/app/(app)/trips/actions";
 import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 import { StopForm } from "@/components/trips/stop-form";
 import { TripTitle } from "@/components/trips/trip-title";
-import { dangerLinkClass, mutedClass } from "@/components/ui";
+import {
+  dangerLinkClass,
+  mutedClass,
+  primaryButtonClass,
+} from "@/components/ui";
 import { listCountries, placeLabel } from "@/lib/countries";
 import { formatDateRange } from "@/lib/format";
 import { requireUser } from "@/lib/session";
@@ -33,6 +37,17 @@ export default async function TripPage({ params }: Props) {
       <div className="mt-3">
         <TripTitle tripId={trip.id} name={trip.name} />
       </div>
+
+      {trip.stops.length > 0 && (
+        <div className="mt-6">
+          <Link
+            href={`/trips/${trip.id}/recommendations`}
+            className={primaryButtonClass}
+          >
+            See souvenir recommendations
+          </Link>
+        </div>
+      )}
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">Stops</h2>

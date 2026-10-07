@@ -112,3 +112,24 @@ export const INTEREST_LABELS: Record<InterestTag, string> = {
   humor: "Humor",
   collectibles: "Collecting",
 };
+
+export const CATEGORY_LABELS: Record<SouvenirCategory, string> = {
+  food: "Food",
+  drink: "Drink",
+  clothing: "Clothing",
+  accessory: "Accessory",
+  jewelry: "Jewelry",
+  decor: "Home decor",
+  toy: "Toy",
+  craft: "Craft",
+  art: "Art",
+  book: "Book",
+  cosmetics: "Cosmetics",
+  music: "Music",
+};
+
+export const PRICE_LABELS: Record<PriceTier, string> = {
+  budget: "Budget",
+  mid: "Mid-range",
+  premium: "Premium",
+};

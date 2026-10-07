@@ -1,4 +1,4 @@
-import { isCountryCode } from "@/lib/countries";
+import { ANYWHERE, isCountryCode } from "@/lib/countries";
 import {
   INTEREST_TAGS,
   PRICE_TIERS,
@@ -36,7 +36,7 @@ export function checkCatalogue(): string[] {
     if (slugs.has(at)) problems.push(`${at}: duplicate slug`);
     slugs.add(at);
 
-    if (!noted.has(entry.countryCode)) problems.push(`${at}: country ${entry.countryCode} has no notes`);
+    if (entry.countryCode !== ANYWHERE && !noted.has(entry.countryCode)) problems.push(`${at}: country ${entry.countryCode} has no notes`);
     if (!at.startsWith(`${entry.countryCode.toLowerCase()}-`)) problems.push(`${at}: slug does not start with its country code`);
     if (!categories.has(entry.category)) problems.push(`${at}: unknown category`);
     if (!prices.has(entry.priceTier)) problems.push(`${at}: unknown price tier`);
