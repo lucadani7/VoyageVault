@@ -14,6 +14,8 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+// Relative path on purpose: drizzle-kit reads this file without the "@/" alias.
+import { VISIT_STATUSES } from "../lib/visit-status";
 
 /* ------------------------------------------------------------------ */
 /* Shared vocabularies (also used by forms and the recommender)        */
@@ -95,6 +97,7 @@ export const souvenirCategoryEnum = pgEnum(
   SOUVENIR_CATEGORIES,
 );
 export const priceTierEnum = pgEnum("price_tier", PRICE_TIERS);
+export const visitStatusEnum = pgEnum("visit_status", VISIT_STATUSES);
 export const recommendationStatusEnum = pgEnum(
   "recommendation_status",
   RECOMMENDATION_STATUSES,
@@ -212,10 +215,14 @@ export const tripStops = pgTable(
       .references(() => trips.id, { onDelete: "cascade" }),
     /** ISO 3166-1 alpha-2, upper case (RO, FR, AU). */
     countryCode: text("country_code").notNull(),
+    /** OpenStreetMap reference of the chosen city or region, e.g. "R42602". */
+    placeRef: text("place_ref"),
     region: text("region"),
     city: text("city"),
     lat: doublePrecision("lat"),
     lng: doublePrecision("lng"),
+    /** Chosen by the user; null only on stops created before it existed. */
+    visitStatus: visitStatusEnum("visit_status"),
     arrivalDate: date("arrival_date").notNull(),
     departureDate: date("departure_date").notNull(),
     /** Order of the stop within the trip, starting at 0. */
