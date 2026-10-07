@@ -12,7 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx --env-file=.env.local db/seed/index.ts",
     "db:studio": "drizzle-kit studio",
-    "db:reset": "tsx --env-file=.env.local db/reset.ts"
+    "db:reset": "tsx --env-file=.env.local db/reset.ts",
+    "db:check": "tsx db/seed/check.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.7",

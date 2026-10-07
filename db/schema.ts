@@ -15,7 +15,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 // Relative path on purpose: drizzle-kit reads this file without the "@/" alias.
-import { VISIT_STATUSES } from "../lib/visit-status";
+import { VISIT_STATUSES } from "@/lib/visit-status";
 import {
   AGE_GROUPS,
   INTEREST_TAGS,
@@ -24,7 +24,7 @@ import {
   RECOMMENDATION_STATUSES,
   RELATIONSHIPS,
   SOUVENIR_CATEGORIES,
-} from "../lib/vocabulary";
+} from "@/lib/vocabulary";
 
 /* ------------------------------------------------------------------ */
 /* Shared vocabularies live in lib/vocabulary.ts; re-exported here      */
@@ -261,6 +261,21 @@ export const souvenirTranslations = pgTable(
     description: text("description").notNull(),
   },
   (t) => [primaryKey({ columns: [t.souvenirId, t.locale] })],
+);
+
+/**
+ * Two lines of context per country and language: what it is known for, and
+ * one practical thing worth knowing before travelling or shopping there.
+ */
+export const countryNotes = pgTable(
+  "country_notes",
+  {
+    countryCode: text("country_code").notNull(),
+    locale: text("locale").notNull(),
+    knownFor: text("known_for").notNull(),
+    goodToKnow: text("good_to_know").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.countryCode, t.locale] })],
 );
 
 /* ------------------------------------------------------------------ */

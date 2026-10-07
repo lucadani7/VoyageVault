@@ -13,6 +13,8 @@ export type CatalogEntry = {
   priceTier: PriceTier;
   /** Months 1-12 when it fits best; omit for all year. */
   seasonMonths?: number[];
+  /** A drink without alcohol; not stored, only used by the catalogue check. */
+  nonAlcoholic?: boolean;
   ageGroups: AgeGroup[];
   tags: InterestTag[];
   name: string;
@@ -477,7 +479,7 @@ export const catalog: CatalogEntry[] = [
 
   /* -------------------------- United Kingdom ------------------------- */
   {
-    slug: "gb-english-tea", countryCode: "GB", category: "drink", priceTier: "budget",
+    slug: "gb-english-tea", countryCode: "GB", category: "drink", priceTier: "budget", nonAlcoholic: true,
     ageGroups: GROWN, tags: ["drinks", "tradition"],
     name: "English breakfast tea",
     description: "A tin of loose-leaf tea from a traditional tea merchant.",
@@ -584,7 +586,7 @@ export const catalog: CatalogEntry[] = [
     description: "The Brazilian rubber sandals, far cheaper at home than abroad.",
   },
   {
-    slug: "br-coffee", countryCode: "BR", region: "Minas Gerais", category: "drink", priceTier: "mid",
+    slug: "br-coffee", countryCode: "BR", region: "Minas Gerais", category: "drink", priceTier: "mid", nonAlcoholic: true,
     ageGroups: GROWN, tags: ["drinks", "cooking"],
     name: "Speciality coffee beans",
     description: "Single-origin beans from the world's largest coffee producer.",

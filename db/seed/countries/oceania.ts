@@ -1,0 +1,106 @@
+import { country, type CountrySeed } from "../define";
+
+export const oceania: CountrySeed[] = [
+  country("NZ", "Māori culture, fjords, hiking, rugby and film landscapes.", "Biosecurity is strict: declare all food, wood and used outdoor gear on arrival. Pounamu is traditionally given as a gift rather than bought for oneself.", [
+    ["manuka-honey", "food", "mid", "adults", "food nature", "Mānuka honey", "Graded by its UMF number."],
+    ["pounamu", "jewelry", "premium", "adults", "jewelry tradition", "Pounamu pendant", "Greenstone carved in shapes that each have a meaning."],
+    ["merino", "clothing", "premium", "adults", "fashion", "Merino clothing", "Fine wool base layers and knitwear."],
+    ["rugby-jersey", "clothing", "mid", "all", "sports", "Rugby jersey", "The black national shirt."],
+    ["kiwi", "toy", "budget", "child", "toys nature", "Plush kiwi", "The flightless national bird."],
+    ["paua", "jewelry", "budget", "teens+", "jewelry nature", "Pāua jewellery", "Iridescent blue-green abalone shell."],
+    ["sweets", "food", "budget", "all", "sweets", "Chocolate and sweets", "Local chocolate bars and chewy pineapple sweets."],
+    ["sauvignon-blanc", "drink", "mid", "adults", "drinks", "Sauvignon blanc", "From Marlborough."],
+  ]),
+  country("FJ", "Coral islands, 'bula' hospitality and kava ceremonies.", "Kava may be restricted at your home border; check quantity limits.", [
+    ["masi", "art", "mid", "adults", "art tradition crafts", "Masi", "Bark cloth stencilled in black and brown."],
+    ["tanoa", "decor", "mid", "adults", "tradition crafts", "Tanoa", "A carved kava bowl."],
+    ["sulu", "clothing", "budget", "all", "fashion", "Sulu", "A printed wrap skirt."],
+    ["coconut-oil", "cosmetics", "budget", "adults", "beauty", "Coconut body oil", "Scented with island flowers."],
+    ["pearls", "jewelry", "premium", "adults", "jewelry", "Fiji pearls", "In unusual natural colours."],
+  ]),
+  country("PF", "Tahiti, the lagoons of Bora Bora and black pearls.", "Pearls bought from certified shops come with a certificate for customs.", [
+    ["black-pearl", "jewelry", "premium", "adults", "jewelry", "Tahitian pearl", "Dark pearls grown in the lagoons of the Tuamotus."],
+    ["monoi", "cosmetics", "budget", "adults", "beauty", "Monoï oil", "Coconut oil scented with tiare flowers."],
+    ["vanilla", "food", "mid", "adults", "cooking", "Tahitian vanilla", "Plump, floral pods from Taha'a."],
+    ["pareo", "clothing", "budget", "all", "fashion", "Pareo", "A hand-dyed wrap."],
+    ["ukulele", "music", "premium", "adults", "music", "Tahitian ukulele", "Eight strings and a bright, fast sound."],
+  ]),
+  country("PG", "More than 800 languages, tribal festivals and birds of paradise.", "Bird-of-paradise feathers and many traditional objects cannot be exported; check travel advice.", [
+    ["bilum", "accessory", "mid", "adults", "fashion crafts tradition", "Bilum", "A looped string bag."],
+    ["sepik-carving", "art", "mid", "adults", "art tradition", "Sepik carving", "Masks and figures from the Sepik River."],
+    ["coffee", "drink", "budget", "adults", "drinks", "Highland coffee", "Arabica from the Highlands.", { soft: true }],
+    ["tapa", "art", "mid", "adults", "art crafts", "Tapa cloth", "Painted bark cloth from Oro province."],
+  ]),
+  country("WS", "Polynesian tradition, waterfalls and the art of tattooing.", "Sunday is a day of rest: most shops close.", [
+    ["siapo", "art", "mid", "adults", "art tradition crafts", "Siapo", "Bark cloth painted with natural dyes."],
+    ["lavalava", "clothing", "budget", "all", "fashion", "Lavalava", "A printed wrap."],
+    ["coconut-oil", "cosmetics", "budget", "adults", "beauty", "Coconut oil", "Scented with local flowers."],
+    ["kava-bowl", "decor", "mid", "adults", "tradition crafts", "Kava bowl", "A many-legged carved bowl."],
+  ]),
+  country("TO", "A Polynesian kingdom, swimming with whales and quiet Sundays.", "Almost everything closes on Sunday by law.", [
+    ["ngatu", "art", "mid", "adults", "art tradition crafts", "Ngatu", "Decorated bark cloth, given at weddings and funerals."],
+    ["basket", "decor", "mid", "adults", "crafts", "Woven basket", "Finely plaited pandanus."],
+    ["vanilla", "food", "budget", "adults", "cooking", "Vanilla", "Grown on Vava'u."],
+    ["carving", "decor", "mid", "adults", "art crafts", "Wood carving", "Figures and war-club replicas."],
+  ]),
+  country("VU", "Active volcanoes, land diving and village life.", "Kava may be restricted at your home border.", [
+    ["coffee", "drink", "budget", "adults", "drinks", "Tanna coffee", "Grown on volcanic soil.", { soft: true }],
+    ["basket", "decor", "budget", "adults", "crafts", "Pandanus basket", "Each island has its own weave."],
+    ["sand-drawing", "art", "budget", "all", "art tradition", "Sand-drawing print", "Based on the continuous-line drawings on UNESCO's heritage list."],
+    ["tamtam", "decor", "mid", "adults", "art tradition", "Miniature tamtam", "A small version of the carved slit drums of Ambrym."],
+  ]),
+  country("SB", "Second World War wrecks, lagoons and shell money.", "Check your home country's rules before buying anything made of shell.", [
+    ["carving", "art", "mid", "adults", "art crafts", "Inlaid wood carving", "Dark wood set with pieces of shell."],
+    ["basket", "decor", "mid", "adults", "crafts", "Buka basket", "Tightly woven and very durable."],
+    ["coconut-oil", "cosmetics", "budget", "adults", "beauty", "Coconut oil", "Cold-pressed in the villages."],
+    ["panpipes", "music", "budget", "all", "music tradition", "Bamboo panpipes", "From the islands' panpipe orchestras."],
+  ]),
+  country("KI", "Coral atolls spread across the equator and the date line.", "The Australian dollar is the currency.", [
+    ["mat", "decor", "mid", "adults", "crafts", "Pandanus mat", "Finely woven."],
+    ["fan", "decor", "budget", "all", "crafts", "Woven fan", "Plaited from coconut leaf."],
+    ["stamps", "art", "budget", "adults", "collectibles", "Stamps", "From one of the first places to see each new day."],
+    ["coconut-craft", "craft", "budget", "adults", "crafts", "Coconut-fibre craft", "Cord and ornaments twisted from coconut husk."],
+  ]),
+  country("MH", "Coral atolls, wartime relics and navigation by stick charts.", "The US dollar is the currency.", [
+    ["stick-chart", "decor", "mid", "adults", "history crafts", "Stick chart", "A map of ocean swells made of sticks and shells."],
+    ["kili-bag", "accessory", "mid", "adults", "fashion crafts", "Kili bag", "A finely woven handbag."],
+    ["mat", "decor", "mid", "adults", "crafts tradition", "Jaki-ed mat", "A patterned clothing mat."],
+    ["coconut-oil", "cosmetics", "budget", "adults", "beauty", "Coconut oil", "Made on the outer islands."],
+  ]),
+  country("FM", "The ruins of Nan Madol, the stone money of Yap and wreck diving.", "The US dollar is the currency.", [
+    ["pepper", "food", "budget", "adults", "cooking", "Pohnpei pepper", "Rated highly by chefs."],
+    ["stone-money", "decor", "budget", "all", "history collectibles", "Miniature stone money", "A model of the giant discs of Yap."],
+    ["basket", "decor", "budget", "adults", "crafts", "Woven basket", "Plaited from pandanus."],
+    ["lavalava", "clothing", "mid", "adults", "tradition crafts", "Woven lavalava", "A backstrap-loom wrap from the outer islands."],
+  ]),
+  country("NR", "The world's smallest island republic.", "The Australian dollar is the currency.", [
+    ["stamps", "art", "budget", "adults", "collectibles", "Stamps", "A rarity for collectors."],
+    ["fan", "decor", "budget", "all", "crafts", "Woven fan", "Plaited pandanus."],
+    ["coconut-craft", "craft", "budget", "adults", "crafts", "Coconut craft", "Carved shell ornaments."],
+    ["shirt", "clothing", "budget", "all", "collectibles humor", "Island T-shirt", "Proof of visiting one of the least-visited countries."],
+  ]),
+  country("PW", "The Rock Islands, a lake of stingless jellyfish and superb diving.", "Visitors sign an environmental pledge on arrival, and many sunscreens are banned to protect the reef.", [
+    ["storyboard", "art", "premium", "adults", "art tradition crafts", "Storyboard", "A wooden panel carved with a Palauan legend."],
+    ["bag", "accessory", "mid", "adults", "crafts", "Woven bag", "Plaited from pandanus."],
+    ["money-bead", "jewelry", "mid", "adults", "jewelry tradition", "Money-bead replica", "A copy of the udoud beads worn by women."],
+    ["coconut-oil", "cosmetics", "budget", "adults", "beauty", "Coconut oil", "Locally pressed."],
+  ]),
+  country("TV", "Low-lying coral atolls and the .tv internet domain.", "The Australian dollar is the currency.", [
+    ["stamps", "art", "budget", "adults", "collectibles", "Stamps", "Known to collectors around the world."],
+    ["fan", "decor", "budget", "all", "crafts", "Woven fan", "Decorated with dyed fibres."],
+    ["mat", "decor", "mid", "adults", "crafts", "Pandanus mat", "Patterned sleeping mats."],
+    ["canoe", "decor", "mid", "adults", "crafts collectibles", "Model canoe", "A wooden outrigger."],
+  ]),
+  country("NC", "The world's largest lagoon and a French-Melanesian culture.", "The currency is the Pacific franc, pegged to the euro.", [
+    ["carving", "art", "mid", "adults", "art tradition", "Kanak carving", "A miniature of the spire that tops the great house."],
+    ["niaouli", "cosmetics", "budget", "adults", "beauty", "Niaouli oil", "An essential oil distilled from a local tree."],
+    ["vanilla", "food", "mid", "adults", "cooking", "Lifou vanilla", "From the Loyalty Islands."],
+    ["pareo", "clothing", "budget", "all", "fashion", "Pareo", "A printed wrap."],
+  ]),
+  country("GU", "Chamorro culture, beaches and wartime history.", "A US territory: the dollar is used and US entry rules apply.", [
+    ["latte-stone", "decor", "budget", "all", "history collectibles", "Latte stone miniature", "A model of the ancient pillars of Chamorro houses."],
+    ["cookies", "food", "budget", "all", "sweets", "Chamorro cookies", "Locally baked biscuits."],
+    ["coconut-candy", "food", "budget", "all", "sweets", "Coconut candy", "Chewy sweets of grated coconut."],
+    ["carabao", "decor", "budget", "all", "crafts collectibles", "Carabao carving", "A wooden water buffalo, the island's emblem."],
+  ]),
+];

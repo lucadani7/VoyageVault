@@ -1,57 +1,111 @@
-import { sql } from "drizzle-orm";
+import { notInArray, sql } from "drizzle-orm";
 import { db, pool } from "../index";
-import { souvenirs, souvenirTranslations } from "../schema";
-import { catalog } from "./catalog";
+import { countryNotes, souvenirs, souvenirTranslations } from "../schema";
+import { allNotes, allSouvenirs } from "./all";
+import { checkCatalogue } from "./check";
+
+const BATCH = 200;
+
+function* batches<T>(items: T[]): Generator<T[]> {
+  for (let i = 0; i < items.length; i += BATCH) yield items.slice(i, i + BATCH);
+}
 
 /**
- * Loads the souvenir catalogue. Safe to run repeatedly: entries are matched
- * on `slug` and updated in place, so editing catalog.ts and re-running is the
- * normal way to change the catalogue.
+ * Loads the catalogue into the database. The files under db/seed are the
+ * source of truth: entries are matched on `slug` and updated in place, and
+ * souvenirs no longer present in the files are removed. Safe to re-run.
  */
 async function main() {
-  const slugs = new Set<string>();
-  for (const entry of catalog) {
-    if (slugs.has(entry.slug)) throw new Error(`Duplicate slug: ${entry.slug}`);
-    slugs.add(entry.slug);
+  const problems = checkCatalogue();
+  if (problems.length > 0) {
+    throw new Error(`Catalogue check failed:\n${problems.join("\n")}`);
   }
 
   await db.transaction(async (tx) => {
-    for (const entry of catalog) {
-      const values = {
-        slug: entry.slug,
-        countryCode: entry.countryCode,
-        region: entry.region ?? null,
-        category: entry.category,
-        priceTier: entry.priceTier,
-        seasonMonths: entry.seasonMonths ?? [],
-        ageGroups: entry.ageGroups,
-        tags: entry.tags,
-      };
-      const [row] = await tx
-        .insert(souvenirs)
-        .values(values)
-        .onConflictDoUpdate({ target: souvenirs.slug, set: values })
-        .returning({ id: souvenirs.id });
+    const ids = new Map<string, string>();
 
+    for (const batch of batches(allSouvenirs)) {
+      const rows = await tx
+        .insert(souvenirs)
+        .values(
+          batch.map((entry) => ({
+            slug: entry.slug,
+            countryCode: entry.countryCode,
+            region: entry.region ?? null,
+            category: entry.category,
+            priceTier: entry.priceTier,
+            seasonMonths: entry.seasonMonths ?? [],
+            ageGroups: entry.ageGroups,
+            tags: entry.tags,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: souvenirs.slug,
+          set: {
+            countryCode: sql`excluded.country_code`,
+            region: sql`excluded.region`,
+            category: sql`excluded.category`,
+            priceTier: sql`excluded.price_tier`,
+            seasonMonths: sql`excluded.season_months`,
+            ageGroups: sql`excluded.age_groups`,
+            tags: sql`excluded.tags`,
+          },
+        })
+        .returning({ id: souvenirs.id, slug: souvenirs.slug });
+      for (const row of rows) ids.set(row.slug, row.id);
+    }
+
+    for (const batch of batches(allSouvenirs)) {
       await tx
         .insert(souvenirTranslations)
-        .values({
-          souvenirId: row.id,
-          locale: "en",
-          name: entry.name,
-          description: entry.description,
-        })
+        .values(
+          batch.map((entry) => ({
+            souvenirId: ids.get(entry.slug)!,
+            locale: "en",
+            name: entry.name,
+            description: entry.description,
+          })),
+        )
         .onConflictDoUpdate({
           target: [souvenirTranslations.souvenirId, souvenirTranslations.locale],
-          set: { name: entry.name, description: entry.description },
+          set: {
+            name: sql`excluded.name`,
+            description: sql`excluded.description`,
+          },
+        });
+    }
+
+    await tx.delete(souvenirs).where(
+      notInArray(
+        souvenirs.slug,
+        allSouvenirs.map((entry) => entry.slug),
+      ),
+    );
+
+    for (const batch of batches(allNotes)) {
+      await tx
+        .insert(countryNotes)
+        .values(
+          batch.map((note) => ({
+            countryCode: note.code,
+            locale: "en",
+            knownFor: note.knownFor,
+            goodToKnow: note.goodToKnow,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [countryNotes.countryCode, countryNotes.locale],
+          set: {
+            knownFor: sql`excluded.known_for`,
+            goodToKnow: sql`excluded.good_to_know`,
+          },
         });
     }
   });
 
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(souvenirs);
-  console.log(`Seeded ${catalog.length} souvenirs (${count} in database).`);
+  console.log(
+    `Seeded ${allSouvenirs.length} souvenirs and notes for ${allNotes.length} countries.`,
+  );
 }
 
 main()
