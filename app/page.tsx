@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { GoogleButton } from "@/components/google-button";
+import { googleEnabled } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 
 export default async function Home() {
@@ -13,7 +15,7 @@ export default async function Home() {
         Souvenir ideas for every place you visit, matched to the people you
         are bringing them home to.
       </p>
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
+      <div className="mt-8 flex w-full max-w-xs flex-col gap-3">
         {session ? (
           <Link
             href="/trips"
@@ -23,6 +25,7 @@ export default async function Home() {
           </Link>
         ) : (
           <>
+            {googleEnabled && <GoogleButton />}
             <Link
               href="/sign-up"
               className="rounded-lg bg-zinc-900 px-5 py-2.5 font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"

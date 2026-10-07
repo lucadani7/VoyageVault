@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { GoogleButton } from "./google-button";
 
 type Mode = "sign-in" | "sign-up";
 
@@ -25,7 +26,6 @@ export function AuthForm({
 }) {
   const router = useRouter();
   const isSignUp = mode === "sign-up";
-  const [googlePending, setGooglePending] = useState(false);
 
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     async (_previous, formData) => {
@@ -52,12 +52,6 @@ export function AuthForm({
     { error: null, name: "", email: "" },
   );
 
-  async function continueWithGoogle() {
-    setGooglePending(true);
-    await authClient.signIn.social({ provider: "google", callbackURL: "/trips" });
-    setGooglePending(false);
-  }
-
   return (
     <div className="w-full max-w-sm">
       <h1 className="text-2xl font-semibold tracking-tight">
@@ -71,14 +65,9 @@ export function AuthForm({
 
       {googleEnabled && (
         <>
-          <button
-            type="button"
-            onClick={continueWithGoogle}
-            disabled={googlePending || pending}
-            className="mt-6 w-full rounded-lg border border-zinc-300 px-4 py-2.5 font-medium hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-900"
-          >
-            Continue with Google
-          </button>
+          <div className="mt-6">
+            <GoogleButton disabled={pending} />
+          </div>
           <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-500">
             <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
             or
@@ -139,7 +128,7 @@ export function AuthForm({
 
         <button
           type="submit"
-          disabled={pending || googlePending}
+          disabled={pending}
           className="mt-6 w-full rounded-lg bg-zinc-900 px-4 py-2.5 font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
         >
           {pending
