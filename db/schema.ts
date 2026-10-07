@@ -1,0 +1,282 @@
+import { sql } from "drizzle-orm";
+import {
+  date,
+  doublePrecision,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  smallint,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+/* ------------------------------------------------------------------ */
+/* Shared vocabularies (also used by forms and the recommender)        */
+/* ------------------------------------------------------------------ */
+
+export const RELATIONSHIPS = [
+  "family",
+  "friend",
+  "acquaintance",
+  "classmate",
+  "coworker",
+] as const;
+
+export const AGE_GROUPS = ["child", "teen", "adult", "senior"] as const;
+
+export const SOUVENIR_CATEGORIES = [
+  "food",
+  "drink",
+  "clothing",
+  "accessory",
+  "jewelry",
+  "decor",
+  "toy",
+  "craft",
+  "art",
+  "book",
+  "cosmetics",
+  "music",
+] as const;
+
+export const PRICE_TIERS = ["budget", "mid", "premium"] as const;
+
+export const RECOMMENDATION_STATUSES = [
+  "suggested",
+  "bought",
+  "dismissed",
+] as const;
+
+/**
+ * Interest tags. A recipient's `interests` are matched against a souvenir's
+ * `tags`, so both columns draw from this single list.
+ */
+export const INTEREST_TAGS = [
+  "food",
+  "sweets",
+  "drinks",
+  "cooking",
+  "fashion",
+  "home-decor",
+  "art",
+  "history",
+  "tradition",
+  "science",
+  "tech",
+  "sports",
+  "music",
+  "books",
+  "nature",
+  "toys",
+  "games",
+  "jewelry",
+  "beauty",
+  "crafts",
+  "humor",
+  "collectibles",
+] as const;
+
+export type Relationship = (typeof RELATIONSHIPS)[number];
+export type AgeGroup = (typeof AGE_GROUPS)[number];
+export type SouvenirCategory = (typeof SOUVENIR_CATEGORIES)[number];
+export type PriceTier = (typeof PRICE_TIERS)[number];
+export type RecommendationStatus = (typeof RECOMMENDATION_STATUSES)[number];
+export type InterestTag = (typeof INTEREST_TAGS)[number];
+
+export const relationshipEnum = pgEnum("relationship", RELATIONSHIPS);
+export const ageGroupEnum = pgEnum("age_group", AGE_GROUPS);
+export const souvenirCategoryEnum = pgEnum(
+  "souvenir_category",
+  SOUVENIR_CATEGORIES,
+);
+export const priceTierEnum = pgEnum("price_tier", PRICE_TIERS);
+export const recommendationStatusEnum = pgEnum(
+  "recommendation_status",
+  RECOMMENDATION_STATUSES,
+);
+
+const createdAt = timestamp("created_at", { withTimezone: true })
+  .notNull()
+  .defaultNow();
+const updatedAt = timestamp("updated_at", { withTimezone: true })
+  .notNull()
+  .defaultNow()
+  .$onUpdate(() => new Date());
+
+/* ------------------------------------------------------------------ */
+/* Users — column shape matches the Auth.js Drizzle adapter            */
+/* ------------------------------------------------------------------ */
+
+export const users = pgTable("users", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name"),
+  email: text("email").unique(),
+  emailVerified: timestamp("email_verified", { mode: "date" }),
+  image: text("image"),
+  createdAt,
+});
+
+/* ------------------------------------------------------------------ */
+/* Trips and their stops                                               */
+/* ------------------------------------------------------------------ */
+
+export const trips = pgTable(
+  "trips",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    startDate: date("start_date"),
+    endDate: date("end_date"),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [index("trips_user_id_idx").on(t.userId)],
+);
+
+export const tripStops = pgTable(
+  "trip_stops",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    /** ISO 3166-1 alpha-2, upper case (RO, FR, AU). */
+    countryCode: text("country_code").notNull(),
+    region: text("region"),
+    city: text("city"),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    arrivalDate: date("arrival_date").notNull(),
+    departureDate: date("departure_date").notNull(),
+    /** Order of the stop within the trip, starting at 0. */
+    position: integer("position").notNull().default(0),
+    createdAt,
+  },
+  (t) => [index("trip_stops_trip_id_idx").on(t.tripId)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Recipients — the people souvenirs are bought for                    */
+/* ------------------------------------------------------------------ */
+
+export const recipients = pgTable(
+  "recipients",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    relationship: relationshipEnum("relationship").notNull(),
+    ageGroup: ageGroupEnum("age_group").notNull(),
+    interests: text("interests")
+      .array()
+      .$type<InterestTag[]>()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    notes: text("notes"),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [index("recipients_user_id_idx").on(t.userId)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Souvenir catalogue                                                  */
+/* ------------------------------------------------------------------ */
+
+export const souvenirs = pgTable(
+  "souvenirs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Stable human-readable key, used to make seeding repeatable. */
+    slug: text("slug").notNull().unique(),
+    countryCode: text("country_code").notNull(),
+    /** Set only when the souvenir is specific to one region or city. */
+    region: text("region"),
+    category: souvenirCategoryEnum("category").notNull(),
+    priceTier: priceTierEnum("price_tier").notNull(),
+    /** Months (1-12) when it is especially fitting. Empty = all year. */
+    seasonMonths: smallint("season_months")
+      .array()
+      .notNull()
+      .default(sql`'{}'::smallint[]`),
+    ageGroups: ageGroupEnum("age_groups").array().notNull(),
+    tags: text("tags")
+      .array()
+      .$type<InterestTag[]>()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    createdAt,
+  },
+  (t) => [index("souvenirs_country_code_idx").on(t.countryCode)],
+);
+
+/**
+ * Display text lives here, one row per language, so adding a language never
+ * needs a schema change. Every souvenir must have an `en` row.
+ */
+export const souvenirTranslations = pgTable(
+  "souvenir_translations",
+  {
+    souvenirId: uuid("souvenir_id")
+      .notNull()
+      .references(() => souvenirs.id, { onDelete: "cascade" }),
+    locale: text("locale").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.souvenirId, t.locale] })],
+);
+
+/* ------------------------------------------------------------------ */
+/* Recommendations — a souvenir suggested for a recipient at a stop    */
+/* ------------------------------------------------------------------ */
+
+export const recommendations = pgTable(
+  "recommendations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripStopId: uuid("trip_stop_id")
+      .notNull()
+      .references(() => tripStops.id, { onDelete: "cascade" }),
+    recipientId: uuid("recipient_id")
+      .notNull()
+      .references(() => recipients.id, { onDelete: "cascade" }),
+    souvenirId: uuid("souvenir_id")
+      .notNull()
+      .references(() => souvenirs.id, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    status: recommendationStatusEnum("status").notNull().default("suggested"),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    unique("recommendations_stop_recipient_souvenir_key").on(
+      t.tripStopId,
+      t.recipientId,
+      t.souvenirId,
+    ),
+    index("recommendations_recipient_id_idx").on(t.recipientId),
+  ],
+);
+
+export type User = typeof users.$inferSelect;
+export type Trip = typeof trips.$inferSelect;
+export type NewTrip = typeof trips.$inferInsert;
+export type TripStop = typeof tripStops.$inferSelect;
+export type NewTripStop = typeof tripStops.$inferInsert;
+export type Recipient = typeof recipients.$inferSelect;
+export type NewRecipient = typeof recipients.$inferInsert;
+export type Souvenir = typeof souvenirs.$inferSelect;
+export type SouvenirTranslation = typeof souvenirTranslations.$inferSelect;
+export type Recommendation = typeof recommendations.$inferSelect;
