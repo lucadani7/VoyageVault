@@ -25,6 +25,13 @@ import { setRecommendationStatus } from "./actions";
 
 type Props = { params: Promise<{ id: string }> };
 
+const EXPORTS = [
+  { format: "html", label: "Printable page", download: false },
+  { format: "csv", label: "CSV", download: true },
+  { format: "json", label: "JSON", download: true },
+  { format: "xml", label: "XML", download: true },
+] as const;
+
 export const metadata: Metadata = { title: "Recommendations · VoyageVault" };
 
 /** Hidden fields identifying one suggestion, plus a button per decision. */
@@ -111,6 +118,29 @@ export default async function RecommendationsPage({ params }: Props) {
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">
         Souvenir recommendations
       </h1>
+
+      {stops.length > 0 && people.length > 0 && (
+        <nav
+          aria-label="Export"
+          className="mt-3 flex flex-wrap items-center gap-x-4 text-sm"
+        >
+          <span className={mutedClass}>Export this list:</span>
+          {EXPORTS.map(({ format, label, download }) => (
+            <a
+              key={format}
+              href={`/api/v1/trips/${trip.id}/recommendations?format=${format}${
+                download ? "&download=1" : ""
+              }`}
+              // The printable page opens in a new tab; the rest download.
+              target={download ? undefined : "_blank"}
+              rel={download ? undefined : "noreferrer"}
+              className={plainLinkClass}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+      )}
 
       {stops.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">

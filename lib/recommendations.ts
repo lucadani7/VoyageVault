@@ -12,9 +12,11 @@ import {
   pickVaried,
   rankSouvenirs,
   type ScorableSouvenir,
+  scoreSouvenir,
 } from "./recommender/score";
-import { getRecipients } from "./recipients";
+import { getRecipient, getRecipients } from "./recipients";
 import { getTrip } from "./trips";
+import type { RecommendationStatus } from "./vocabulary";
 
 /** How many fresh suggestions to show per person and stop. */
 export const SUGGESTIONS_PER_PERSON = 5;
@@ -25,6 +27,7 @@ export type RecommendationItem = {
   souvenirId: string;
   name: string;
   description: string;
+  category: CatalogueSouvenir["category"];
   priceTier: CatalogueSouvenir["priceTier"];
   score: number;
   /** Why it was suggested, already worded for display. */
@@ -128,6 +131,7 @@ export async function getTripRecommendations(userId: string, tripId: string) {
           souvenirId: scored.souvenir.id,
           name: scored.souvenir.name,
           description: scored.souvenir.description,
+          category: scored.souvenir.category,
           priceTier: scored.souvenir.priceTier,
           score: scored.score,
           reasons: scored.reasons.map(explain),
@@ -152,4 +156,64 @@ export async function getTripRecommendations(userId: string, tripId: string) {
   });
 
   return { trip, people, stops };
+}
+
+/**
+ * Records what a user decided about one suggestion: bought, dismissed, or
+ * back to merely suggested (which simply forgets the decision). Returns
+ * false when the trip, stop, person or souvenir is not theirs or missing.
+ */
+export async function saveDecision(
+  userId: string,
+  tripId: string,
+  decision: {
+    stopId: string;
+    recipientId: string;
+    souvenirId: string;
+    status: RecommendationStatus;
+  },
+): Promise<boolean> {
+  const trip = await getTrip(userId, tripId);
+  const stop = trip?.stops.find((item) => item.id === decision.stopId);
+  const recipient = await getRecipient(userId, decision.recipientId);
+  if (!trip || !stop || !recipient) return false;
+
+  const key = and(
+    eq(recommendations.tripStopId, stop.id),
+    eq(recommendations.recipientId, recipient.id),
+    eq(recommendations.souvenirId, decision.souvenirId),
+  );
+
+  if (decision.status === "suggested") {
+    await db.delete(recommendations).where(key);
+    return true;
+  }
+
+  const [souvenir] = await db
+    .select()
+    .from(souvenirs)
+    .where(eq(souvenirs.id, decision.souvenirId));
+  if (!souvenir) return false;
+
+  const score =
+    scoreSouvenir(souvenir, stop, recipient, { anyCountry: true })?.score ?? 0;
+
+  await db
+    .insert(recommendations)
+    .values({
+      tripStopId: stop.id,
+      recipientId: recipient.id,
+      souvenirId: souvenir.id,
+      score,
+      status: decision.status,
+    })
+    .onConflictDoUpdate({
+      target: [
+        recommendations.tripStopId,
+        recommendations.recipientId,
+        recommendations.souvenirId,
+      ],
+      set: { status: decision.status, score },
+    });
+  return true;
 }
