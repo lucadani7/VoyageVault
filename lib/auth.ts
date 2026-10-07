@@ -10,8 +10,19 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 /** Google sign-in is offered only once its credentials are configured. */
 export const googleEnabled = Boolean(googleClientId && googleClientSecret);
 
+/**
+ * Public address of the site. Set BETTER_AUTH_URL locally; on Vercel it falls
+ * back to the project's production domain, so a custom domain added later is
+ * picked up on the next deployment without touching the configuration.
+ */
+const baseURL =
+  process.env.BETTER_AUTH_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : undefined);
+
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
