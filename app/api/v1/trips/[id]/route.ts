@@ -4,7 +4,7 @@ import { trips } from "@/db/schema";
 import { authenticate, invalid, notFound, ok, readJson } from "@/lib/api";
 import { tripShape } from "@/lib/api-shapes";
 import { getTrip } from "@/lib/trips";
-import { validateTripName } from "@/lib/validation";
+import { validateTrip } from "@/lib/validation";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -27,15 +27,16 @@ export async function PATCH(request: Request, { params }: Context) {
   const trip = await getTrip(user.id, (await params).id);
   if (!trip) return notFound("Trip");
 
-  const name = validateTripName(body.name);
-  if (!name.ok) return invalid(name.error);
+  const input = validateTrip(body);
+  if (!input.ok) return invalid(input.error);
+  const { name } = input.value;
 
   await db
     .update(trips)
-    .set({ name: name.value })
+    .set({ name })
     .where(and(eq(trips.id, trip.id), eq(trips.userId, user.id)));
 
-  return ok({ trip: tripShape({ ...trip, name: name.value }) });
+  return ok({ trip: tripShape({ ...trip, name }) });
 }
 
 /** Delete a trip and its stops. */

@@ -8,6 +8,7 @@ import { recipients } from "@/db/schema";
 import { getRecipient } from "@/lib/recipients";
 import { requireUser } from "@/lib/session";
 import { isUuid } from "@/lib/trips";
+import { validateRecipient } from "@/lib/validation";
 import {
   AGE_GROUPS,
   type AgeGroup,
@@ -66,26 +67,15 @@ export async function saveRecipient(
     values,
   });
 
-  if (!values.name) return fail("Enter the person's name.");
-  if (values.name.length > 100) {
-    return fail("Keep the name under 100 characters.");
-  }
-  if (!relationship) return fail("Choose how this person is related to you.");
-  if (!ageGroup) return fail("Choose an age group.");
-  if (interests.length === 0) {
-    return fail("Choose at least one interest, so the suggestions can fit.");
-  }
-  if (values.notes.length > 500) {
-    return fail("Keep the notes under 500 characters.");
-  }
-
-  const data = {
-    name: values.name,
-    relationship,
-    ageGroup,
-    interests,
-    notes: values.notes || null,
-  };
+  const input = validateRecipient({
+    name: formData.get("name"),
+    relationship: formData.get("relationship"),
+    ageGroup: formData.get("ageGroup"),
+    interests: formData.getAll("interests"),
+    notes: formData.get("notes"),
+  });
+  if (!input.ok) return fail(input.error);
+  const data = input.value;
 
   if (recipientId) {
     const existing = await getRecipient(user.id, recipientId);

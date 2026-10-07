@@ -5,18 +5,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { tripStops, trips } from "@/db/schema";
-import { isCountryCode } from "@/lib/countries";
 import type { Place } from "@/lib/places";
 import { requireUser } from "@/lib/session";
 import { getTrip, isUuid } from "@/lib/trips";
+import {
+  placeSchema,
+  validateStop,
+  validateTrip,
+} from "@/lib/validation";
 import { VISIT_STATUSES, type VisitStatus } from "@/lib/visit-status";
 
 const text = (formData: FormData, key: string) =>
   String(formData.get(key) ?? "").trim();
-
-const isIsoDate = (value: string) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-  !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 
 export type TripFormState = { error: string | null; name: string };
 
@@ -25,16 +25,12 @@ export async function createTrip(
   formData: FormData,
 ): Promise<TripFormState> {
   const user = await requireUser();
-  const name = text(formData, "name");
-
-  if (!name) return { error: "Give your trip a name.", name };
-  if (name.length > 100) {
-    return { error: "Keep the name under 100 characters.", name };
-  }
+  const input = validateTrip({ name: formData.get("name") });
+  if (!input.ok) return { error: input.error, name: text(formData, "name") };
 
   const [trip] = await db
     .insert(trips)
-    .values({ userId: user.id, name })
+    .values({ userId: user.id, name: input.value.name })
     .returning({ id: trips.id });
 
   redirect(`/trips/${trip.id}`);
@@ -45,19 +41,15 @@ export async function renameTrip(
 ): Promise<{ error: string | null }> {
   const user = await requireUser();
   const tripId = text(formData, "tripId");
-  const name = text(formData, "name");
-
-  if (!name) return { error: "Give your trip a name." };
-  if (name.length > 100) {
-    return { error: "Keep the name under 100 characters." };
-  }
+  const input = validateTrip({ name: formData.get("name") });
+  if (!input.ok) return { error: input.error };
 
   const trip = await getTrip(user.id, tripId);
   if (!trip) return { error: "This trip no longer exists." };
 
   await db
     .update(trips)
-    .set({ name })
+    .set({ name: input.value.name })
     .where(and(eq(trips.id, trip.id), eq(trips.userId, user.id)));
 
   revalidatePath(`/trips/${trip.id}`);
@@ -106,37 +98,18 @@ export type StopFormState = {
 };
 
 /**
- * Rebuilds the chosen place from the form's hidden inputs. Returns null when
- * nothing was chosen, or when the values are not what the picker produces.
+ * Collects the chosen place from the form's hidden inputs, in the shape the
+ * place schema expects. Null when no place was picked at all.
  */
-function readPlace(formData: FormData): Place | null {
-  const ref = text(formData, "placeRef");
-  const kind = text(formData, "placeKind");
-  const city = text(formData, "city");
-  const region = text(formData, "region");
-  const label = text(formData, "placeLabel");
-  const lat = Number(text(formData, "lat"));
-  const lng = Number(text(formData, "lng"));
-
-  const valid =
-    /^[NWR]\d{1,15}$/.test(ref) &&
-    (kind === "city" || kind === "region") &&
-    Boolean(city || region) &&
-    [city, region, label].every((value) => value.length <= 100) &&
-    Number.isFinite(lat) &&
-    Math.abs(lat) <= 90 &&
-    Number.isFinite(lng) &&
-    Math.abs(lng) <= 180;
-  if (!valid) return null;
-
+function rawPlace(formData: FormData) {
+  if (!text(formData, "placeRef")) return null;
   return {
-    ref,
-    kind,
-    city: city || null,
-    region: region || null,
-    lat,
-    lng,
-    label: label || city || region,
+    ref: text(formData, "placeRef"),
+    kind: text(formData, "placeKind"),
+    city: text(formData, "city"),
+    region: text(formData, "region"),
+    lat: Number(text(formData, "lat")),
+    lng: Number(text(formData, "lng")),
   };
 }
 
@@ -147,55 +120,48 @@ export async function addStop(
   const user = await requireUser();
   const version = previous.version + 1;
   const tripId = text(formData, "tripId");
-  const place = readPlace(formData);
-  const visitStatus = VISIT_STATUSES.find(
-    (status) => status === text(formData, "visitStatus"),
-  );
-  const values: StopFormValues = {
+  const raw = {
     countryCode: text(formData, "countryCode"),
-    place,
-    visitStatus: visitStatus ?? "",
+    place: rawPlace(formData),
+    visitStatus: text(formData, "visitStatus"),
     arrivalDate: text(formData, "arrivalDate"),
     departureDate: text(formData, "departureDate"),
+  };
+
+  // What to put back in the form if the stop is rejected.
+  const chosenPlace = placeSchema.safeParse(raw.place);
+  const values: StopFormValues = {
+    countryCode: raw.countryCode,
+    place: chosenPlace.success ? chosenPlace.data : null,
+    visitStatus:
+      VISIT_STATUSES.find((status) => status === raw.visitStatus) ?? "",
+    arrivalDate: raw.arrivalDate,
+    departureDate: raw.departureDate,
   };
   const fail = (error: string): StopFormState => ({ error, version, values });
 
   const trip = await getTrip(user.id, tripId);
   if (!trip) return fail("This trip no longer exists.");
 
-  if (!isCountryCode(values.countryCode)) return fail("Choose a country.");
-  // A stop always names a place, and only one picked from the suggestions
-  // counts: typed text that was never chosen is not a place.
-  if (!place) {
-    return fail(
-      text(formData, "placeQuery")
-        ? "Choose the city or region from the suggestions."
-        : "Add the city or region you visited.",
-    );
+  const input = validateStop(raw);
+  if (!input.ok) {
+    // Nothing typed at all reads better as a prompt than as a correction.
+    const nothingTyped = input.field === "place" && !text(formData, "placeQuery");
+    return fail(nothingTyped ? "Add the city or region you visited." : input.error);
   }
-  if (!visitStatus) {
-    return fail(
-      "Choose whether you already visited, are visiting or plan to visit this place.",
-    );
-  }
-  if (!isIsoDate(values.arrivalDate) || !isIsoDate(values.departureDate)) {
-    return fail("Select your arrival and departure dates.");
-  }
-  if (values.departureDate < values.arrivalDate) {
-    return fail("The departure date cannot be before the arrival date.");
-  }
+  const { countryCode, place, visitStatus, arrivalDate, departureDate } = input.value;
 
   await db.insert(tripStops).values({
     tripId: trip.id,
-    countryCode: values.countryCode,
+    countryCode,
     placeRef: place.ref,
     region: place.region,
     city: place.city,
     lat: place.lat,
     lng: place.lng,
     visitStatus,
-    arrivalDate: values.arrivalDate,
-    departureDate: values.departureDate,
+    arrivalDate,
+    departureDate,
     position: trip.stops.length,
   });
 
@@ -208,7 +174,7 @@ export async function addStop(
       countryCode: "",
       place: null,
       visitStatus: "",
-      arrivalDate: values.departureDate,
+      arrivalDate: departureDate,
       departureDate: "",
     },
   };

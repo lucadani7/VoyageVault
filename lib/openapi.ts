@@ -1,4 +1,11 @@
+import { z } from "zod";
 import { EXPORT_FORMATS } from "./export/recommendations";
+import {
+  decisionSchema,
+  recipientSchema,
+  stopSchema,
+  tripSchema,
+} from "./validation";
 import { VISIT_STATUSES } from "./visit-status";
 import {
   AGE_GROUPS,
@@ -15,6 +22,17 @@ import {
  * documentation cannot fall out of step with them. A test checks that every
  * path listed here has a route file, and the other way round.
  */
+
+/**
+ * A request body exactly as the app validates it: generated from the Zod
+ * schema, so the documented rules are the enforced rules.
+ */
+function input(schema: z.ZodType) {
+  const { $schema: _dialect, ...jsonSchema } = z.toJSONSchema(schema, {
+    io: "input",
+  });
+  return jsonSchema;
+}
 
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
 const json = (schema: object) => ({ "application/json": { schema } });
@@ -247,11 +265,10 @@ export const openApiDocument = {
           },
         },
       },
-      TripInput: {
-        type: "object",
-        required: ["name"],
-        properties: { name: { type: "string", maxLength: 100, example: "Autumn in Italy" } },
-      },
+      TripInput: input(tripSchema),
+      StopInput: input(stopSchema),
+      RecipientInput: input(recipientSchema),
+      Decision: input(decisionSchema),
       TripSummary: {
         type: "object",
         required: ["id", "name", "stopCount"],
@@ -275,17 +292,6 @@ export const openApiDocument = {
           label: { type: "string", example: "Florence, Tuscany" },
         },
       },
-      StopInput: {
-        type: "object",
-        required: ["countryCode", "place", "visitStatus", "arrivalDate", "departureDate"],
-        properties: {
-          countryCode: { type: "string", example: "IT" },
-          place: ref("Place"),
-          visitStatus: { type: "string", enum: VISIT_STATUSES },
-          arrivalDate: date,
-          departureDate: date,
-        },
-      },
       Stop: {
         type: "object",
         required: ["id", "countryCode", "country", "arrivalDate", "departureDate"],
@@ -301,17 +307,6 @@ export const openApiDocument = {
           visitStatus: nullable({ type: "string", enum: VISIT_STATUSES }),
           arrivalDate: date,
           departureDate: date,
-        },
-      },
-      RecipientInput: {
-        type: "object",
-        required: ["name", "relationship", "ageGroup", "interests"],
-        properties: {
-          name: { type: "string", maxLength: 100, example: "Grandma Maria" },
-          relationship: { type: "string", enum: RELATIONSHIPS },
-          ageGroup: { type: "string", enum: AGE_GROUPS },
-          interests: { type: "array", minItems: 1, items: { type: "string", enum: INTEREST_TAGS } },
-          notes: nullable({ type: "string", maxLength: 500 }),
         },
       },
       Recipient: {
@@ -331,11 +326,6 @@ export const openApiDocument = {
           ageGroups: { type: "array", items: { type: "string", enum: AGE_GROUPS } },
           tags: { type: "array", items: { type: "string", enum: INTEREST_TAGS } },
         },
-      },
-      Decision: {
-        type: "object",
-        required: ["stopId", "recipientId", "souvenirId", "status"],
-        properties: { stopId: uuid, recipientId: uuid, souvenirId: uuid, status: { type: "string", enum: RECOMMENDATION_STATUSES } },
       },
       RecommendationList: {
         type: "object",
@@ -393,4 +383,4 @@ export const openApiDocument = {
       },
     },
   },
-} as const;
+};

@@ -1,167 +1,162 @@
+import { z } from "zod";
 import { isCountryCode } from "./countries";
 import type { Place } from "./places";
-import { VISIT_STATUSES, type VisitStatus } from "./visit-status";
+import { VISIT_STATUSES } from "./visit-status";
 import {
   AGE_GROUPS,
-  type AgeGroup,
   INTEREST_TAGS,
-  type InterestTag,
   RECOMMENDATION_STATUSES,
-  type RecommendationStatus,
   RELATIONSHIPS,
-  type Relationship,
 } from "./vocabulary";
 
 /**
- * The rules for data coming in through the API. Each function takes raw,
- * untrusted input and returns either the cleaned value or a message that
- * can be shown to the caller as it is.
+ * The one place where the rules for incoming data are written down. The
+ * forms, the REST API and the API documentation all use these schemas, so
+ * a rule changed here changes everywhere at once.
+ *
+ * Messages are written for the person filling in the form; the API returns
+ * the same sentences.
  */
 
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
+const requiredText = (max: number, missing: string, tooLong: string) =>
+  z.string({ error: missing }).trim().min(1, missing).max(max, tooLong);
 
-const good = <T>(value: T): Result<T> => ({ ok: true, value });
-const bad = (error: string): Result<never> => ({ ok: false, error });
+/** Optional text: missing, null and blank all become null. */
+const optionalText = (max: number, tooLong: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, tooLong)
+    .nullish()
+    .transform((value) => value || null);
 
-const str = (value: unknown) => (typeof value === "string" ? value.trim() : "");
-const oneOf = <T extends string>(options: readonly T[], value: unknown) =>
-  options.find((option) => option === value);
+/* ------------------------------- Trips ------------------------------ */
 
-const isIsoDate = (value: string) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-  !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+export const tripSchema = z.object({
+  name: requiredText(
+    100,
+    "Give the trip a name.",
+    "Keep the name under 100 characters.",
+  ),
+});
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/* ------------------------------- Stops ------------------------------ */
 
-export function validateTripName(raw: unknown): Result<string> {
-  const name = str(raw);
-  if (!name) return bad("name is required.");
-  if (name.length > 100) return bad("name must be at most 100 characters.");
-  return good(name);
-}
+const PLACE_MESSAGE = "Choose the city or region from the suggestions.";
+const DATES_MESSAGE = "Select the arrival and departure dates.";
 
-export type StopInput = {
-  countryCode: string;
-  place: Place;
-  visitStatus: VisitStatus;
-  arrivalDate: string;
-  departureDate: string;
-};
+/** A city or region exactly as returned by the place search. */
+export const placeSchema = z
+  .object(
+    {
+      ref: z.string().regex(/^[NWR]\d{1,15}$/),
+      kind: z.enum(["city", "region"]),
+      city: optionalText(100, PLACE_MESSAGE),
+      region: optionalText(100, PLACE_MESSAGE),
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    },
+    { error: PLACE_MESSAGE },
+  )
+  .refine((place) => place.city || place.region, { error: PLACE_MESSAGE })
+  .transform(
+    (place): Place => ({
+      ...place,
+      label: [place.city, place.region].filter(Boolean).join(", "),
+    }),
+  );
 
-export function validatePlace(raw: unknown): Result<Place> {
-  if (typeof raw !== "object" || raw === null) {
-    return bad("place is required: pick one from GET /api/v1/places.");
-  }
-  const input = raw as Record<string, unknown>;
-  const ref = str(input.ref);
-  const kind = oneOf(["city", "region"] as const, input.kind);
-  const city = str(input.city);
-  const region = str(input.region);
-  const { lat, lng } = input;
-
-  if (!/^[NWR]\d{1,15}$/.test(ref)) return bad("place.ref is not valid.");
-  if (!kind) return bad('place.kind must be "city" or "region".');
-  if (!city && !region) return bad("place needs a city or a region.");
-  if (city.length > 100 || region.length > 100) {
-    return bad("place.city and place.region must be at most 100 characters.");
-  }
-  if (typeof lat !== "number" || !Number.isFinite(lat) || Math.abs(lat) > 90) {
-    return bad("place.lat must be a number between -90 and 90.");
-  }
-  if (typeof lng !== "number" || !Number.isFinite(lng) || Math.abs(lng) > 180) {
-    return bad("place.lng must be a number between -180 and 180.");
-  }
-
-  return good({
-    ref,
-    kind,
-    city: city || null,
-    region: region || null,
-    lat,
-    lng,
-    label: [city, region].filter(Boolean).join(", "),
+export const stopSchema = z
+  .object({
+    countryCode: z
+      .string({ error: "Choose a country." })
+      .trim()
+      .toUpperCase()
+      .refine(isCountryCode, { error: "Choose a country." }),
+    place: placeSchema,
+    visitStatus: z.enum(VISIT_STATUSES, {
+      error:
+        "Choose whether you already visited, are visiting or plan to visit this place.",
+    }),
+    arrivalDate: z.iso.date({ error: DATES_MESSAGE }),
+    departureDate: z.iso.date({ error: DATES_MESSAGE }),
+  })
+  .refine((stop) => stop.departureDate >= stop.arrivalDate, {
+    error: "The departure date cannot be before the arrival date.",
+    path: ["departureDate"],
   });
+
+/* ------------------------------ People ------------------------------ */
+
+const INTERESTS_MESSAGE = "Choose at least one interest, so the suggestions can fit.";
+
+export const recipientSchema = z.object({
+  name: requiredText(
+    100,
+    "Enter the person's name.",
+    "Keep the name under 100 characters.",
+  ),
+  relationship: z.enum(RELATIONSHIPS, {
+    error: "Choose how this person is related to you.",
+  }),
+  ageGroup: z.enum(AGE_GROUPS, { error: "Choose an age group." }),
+  interests: z
+    .array(
+      z.enum(INTEREST_TAGS, {
+        error: `An interest must be one of: ${INTEREST_TAGS.join(", ")}.`,
+      }),
+      { error: INTERESTS_MESSAGE },
+    )
+    .min(1, INTERESTS_MESSAGE)
+    // De-duplicated and in the catalogue's own order.
+    .transform((chosen) => INTEREST_TAGS.filter((tag) => chosen.includes(tag))),
+  notes: optionalText(500, "Keep the notes under 500 characters."),
+});
+
+/* --------------------------- Recommendations ------------------------- */
+
+const id = (field: string) => z.guid({ error: `${field} must be a UUID.` });
+
+export const decisionSchema = z.object({
+  stopId: id("stopId"),
+  recipientId: id("recipientId"),
+  souvenirId: id("souvenirId"),
+  status: z.enum(RECOMMENDATION_STATUSES, {
+    error: `status must be one of: ${RECOMMENDATION_STATUSES.join(", ")}.`,
+  }),
+});
+
+/* ------------------------------ Results ----------------------------- */
+
+export type TripInput = z.output<typeof tripSchema>;
+export type StopInput = z.output<typeof stopSchema>;
+export type RecipientInput = z.output<typeof recipientSchema>;
+export type DecisionInput = z.output<typeof decisionSchema>;
+
+export type Result<T> =
+  | { ok: true; value: T }
+  /** `field` is the top-level field the first problem belongs to. */
+  | { ok: false; error: string; field: string | null };
+
+/**
+ * Checks raw, untrusted input against a schema and reports only the first
+ * problem, in the order the fields appear on the form.
+ */
+export function validate<S extends z.ZodType>(
+  schema: S,
+  raw: unknown,
+): Result<z.output<S>> {
+  const parsed = schema.safeParse(raw);
+  if (parsed.success) return { ok: true, value: parsed.data };
+
+  const [issue] = parsed.error.issues;
+  const field = issue.path.length > 0 ? String(issue.path[0]) : null;
+  // Anything wrong inside `place` means the same thing to the user.
+  const error = field === "place" ? PLACE_MESSAGE : issue.message;
+  return { ok: false, error, field };
 }
 
-export function validateStop(raw: Record<string, unknown>): Result<StopInput> {
-  const countryCode = str(raw.countryCode).toUpperCase();
-  if (!isCountryCode(countryCode)) {
-    return bad("countryCode must be an ISO 3166-1 alpha-2 code.");
-  }
-
-  const place = validatePlace(raw.place);
-  if (!place.ok) return place;
-
-  const visitStatus = oneOf(VISIT_STATUSES, raw.visitStatus);
-  if (!visitStatus) {
-    return bad(`visitStatus must be one of: ${VISIT_STATUSES.join(", ")}.`);
-  }
-
-  const arrivalDate = str(raw.arrivalDate);
-  const departureDate = str(raw.departureDate);
-  if (!isIsoDate(arrivalDate) || !isIsoDate(departureDate)) {
-    return bad("arrivalDate and departureDate must be dates as YYYY-MM-DD.");
-  }
-  if (departureDate < arrivalDate) {
-    return bad("departureDate cannot be before arrivalDate.");
-  }
-
-  return good({ countryCode, place: place.value, visitStatus, arrivalDate, departureDate });
-}
-
-export type RecipientInput = {
-  name: string;
-  relationship: Relationship;
-  ageGroup: AgeGroup;
-  interests: InterestTag[];
-  notes: string | null;
-};
-
-export function validateRecipient(raw: Record<string, unknown>): Result<RecipientInput> {
-  const name = str(raw.name);
-  if (!name) return bad("name is required.");
-  if (name.length > 100) return bad("name must be at most 100 characters.");
-
-  const relationship = oneOf(RELATIONSHIPS, raw.relationship);
-  if (!relationship) {
-    return bad(`relationship must be one of: ${RELATIONSHIPS.join(", ")}.`);
-  }
-
-  const ageGroup = oneOf(AGE_GROUPS, raw.ageGroup);
-  if (!ageGroup) return bad(`ageGroup must be one of: ${AGE_GROUPS.join(", ")}.`);
-
-  if (!Array.isArray(raw.interests)) return bad("interests must be a list.");
-  const unknown = raw.interests.find((tag) => !oneOf(INTEREST_TAGS, tag));
-  if (unknown !== undefined) {
-    return bad(`Unknown interest "${String(unknown)}". Allowed: ${INTEREST_TAGS.join(", ")}.`);
-  }
-  // De-duplicated and in the catalogue's own order.
-  const interests = INTEREST_TAGS.filter((tag) => (raw.interests as unknown[]).includes(tag));
-  if (interests.length === 0) return bad("interests needs at least one entry.");
-
-  const notes = raw.notes === undefined || raw.notes === null ? "" : str(raw.notes);
-  if (notes.length > 500) return bad("notes must be at most 500 characters.");
-
-  return good({ name, relationship, ageGroup, interests, notes: notes || null });
-}
-
-export type DecisionInput = {
-  stopId: string;
-  recipientId: string;
-  souvenirId: string;
-  status: RecommendationStatus;
-};
-
-export function validateDecision(raw: Record<string, unknown>): Result<DecisionInput> {
-  const stopId = str(raw.stopId);
-  const recipientId = str(raw.recipientId);
-  const souvenirId = str(raw.souvenirId);
-  for (const [field, value] of Object.entries({ stopId, recipientId, souvenirId })) {
-    if (!UUID.test(value)) return bad(`${field} must be a UUID.`);
-  }
-  const status = oneOf(RECOMMENDATION_STATUSES, raw.status);
-  if (!status) {
-    return bad(`status must be one of: ${RECOMMENDATION_STATUSES.join(", ")}.`);
-  }
-  return good({ stopId, recipientId, souvenirId, status });
-}
+export const validateTrip = (raw: unknown) => validate(tripSchema, raw);
+export const validateStop = (raw: unknown) => validate(stopSchema, raw);
+export const validateRecipient = (raw: unknown) => validate(recipientSchema, raw);
+export const validateDecision = (raw: unknown) => validate(decisionSchema, raw);
