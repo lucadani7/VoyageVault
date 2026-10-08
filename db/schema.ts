@@ -157,8 +157,6 @@ export const trips = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    startDate: date("start_date"),
-    endDate: date("end_date"),
     createdAt,
     updatedAt,
   },
@@ -184,8 +182,6 @@ export const tripStops = pgTable(
     visitStatus: visitStatusEnum("visit_status"),
     arrivalDate: date("arrival_date").notNull(),
     departureDate: date("departure_date").notNull(),
-    /** Order of the stop within the trip, starting at 0. */
-    position: integer("position").notNull().default(0),
     createdAt,
   },
   (t) => [index("trip_stops_trip_id_idx").on(t.tripId)],

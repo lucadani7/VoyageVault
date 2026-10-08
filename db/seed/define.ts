@@ -5,14 +5,30 @@ import {
   type PriceTier,
   type SouvenirCategory,
 } from "@/lib/vocabulary";
-import type { CatalogEntry } from "./catalog";
+
+/** One souvenir, as stored in the database. */
+export type CatalogEntry = {
+  slug: string;
+  countryCode: string;
+  region?: string;
+  category: SouvenirCategory;
+  priceTier: PriceTier;
+  /** Months 1-12 when it fits best; omit for all year. */
+  seasonMonths?: number[];
+  /** A drink without alcohol; not stored, only used by the catalogue check. */
+  nonAlcoholic?: boolean;
+  ageGroups: AgeGroup[];
+  tags: InterestTag[];
+  name: string;
+  description: string;
+};
 
 /** The two lines of context shown for a country. */
 export type CountryNotes = {
   code: string;
   /** What the country is known for. */
   knownFor: string;
-  /** A practical, verifiable tip about travelling there or bringing things home. */
+  /** A practical, verifiable tip about traveling there or bringing things home. */
   goodToKnow: string;
 };
 
@@ -23,6 +39,7 @@ const AGES = {
   kids: ["child", "teen"],
   child: ["child"],
   "teens+": ["teen", "adult", "senior"],
+  "teens-adults": ["teen", "adult"],
   adults: ["adult", "senior"],
 } as const satisfies Record<string, readonly AgeGroup[]>;
 

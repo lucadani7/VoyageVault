@@ -133,6 +133,13 @@ export const openApiDocument = {
     },
     "/trips/{id}/stops/{stopId}": {
       parameters: [idParam("id", "Trip id"), idParam("stopId", "Stop id")],
+      put: {
+        tags: ["Trips"],
+        summary: "Change a stop",
+        description: "Replaces the whole stop; `place` must be one of the results of `GET /places`.",
+        requestBody: body(ref("StopInput")),
+        responses: { "200": okJson("The trip with the changed stop.", wrap("trip", ref("Trip"))), ...errors },
+      },
       delete: {
         tags: ["Trips"],
         summary: "Remove a stop",
@@ -171,6 +178,21 @@ export const openApiDocument = {
         responses: {
           "200": okJson("Up to eight matches.", wrap("places", { type: "array", items: ref("Place") })),
           "401": errors["401"],
+          "502": { description: "The place search service is unavailable.", content: json(ref("Error")) },
+        },
+      },
+    },
+    "/places/country": {
+      get: {
+        tags: ["Trips"],
+        summary: "Where to centre a map for a country",
+        parameters: [
+          { name: "code", in: "query", required: true, schema: { type: "string", example: "FR" }, description: "ISO 3166-1 alpha-2 code" },
+        ],
+        responses: {
+          "200": okJson("The centre and, for compact countries, the bounds.", wrap("view", ref("CountryView"))),
+          "401": errors["401"],
+          "404": errors["404"],
           "502": { description: "The place search service is unavailable.", content: json(ref("Error")) },
         },
       },
@@ -291,6 +313,18 @@ export const openApiDocument = {
       StopInput: input(stopSchema),
       RecipientInput: input(recipientSchema),
       Decision: input(decisionSchema),
+      CountryView: {
+        type: "object",
+        required: ["center", "bounds"],
+        properties: {
+          center: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2, description: "[lat, lng]" },
+          bounds: nullable({
+            type: "array",
+            description: "[[south, west], [north, east]]; null when the country is too spread out to frame",
+            items: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 },
+          }),
+        },
+      },
       Shop: {
         type: "object",
         required: ["id", "name", "kind", "lat", "lng", "distance"],

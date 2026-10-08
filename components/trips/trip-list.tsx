@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DeleteAllTripsButton } from "@/components/trips/delete-all-trips-button";
-import { DeleteTripButton } from "@/components/trips/delete-trip-button";
+import { deleteAllTrips, deleteTrip } from "@/app/(app)/trips/actions";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { inputClass, mutedClass } from "@/components/ui";
 
 export type TripSummary = {
@@ -81,7 +81,12 @@ export function TripList({ trips }: { trips: TripSummary[] }) {
                 )}
               </Link>
               <div className="border-t border-zinc-200 px-4 py-1 dark:border-zinc-800">
-                <DeleteTripButton tripId={trip.id} label="Delete" />
+                <ConfirmDeleteButton
+                  action={deleteTrip}
+                  fields={{ tripId: trip.id }}
+                  label="Delete"
+                  question={`Delete ${trip.name}?`}
+                />
               </div>
             </li>
           ))}
@@ -89,7 +94,15 @@ export function TripList({ trips }: { trips: TripSummary[] }) {
       )}
 
       <div className="mt-10">
-        <DeleteAllTripsButton count={trips.length} />
+        <ConfirmDeleteButton
+          action={deleteAllTrips}
+          label="Delete all trips"
+          question={`Delete ${
+            trips.length === 1 ? "your trip" : `all ${trips.length} trips`
+          } and their stops? This cannot be undone.`}
+          confirmLabel="Yes, delete everything"
+          emphasized
+        />
       </div>
     </>
   );

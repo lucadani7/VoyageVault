@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { deleteStop } from "@/app/(app)/trips/actions";
-import { DeleteTripButton } from "@/components/trips/delete-trip-button";
+import { deleteStop, deleteTrip } from "@/app/(app)/trips/actions";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { StopForm } from "@/components/trips/stop-form";
 import { TripTitle } from "@/components/trips/trip-title";
 import {
   dangerLinkClass,
   mutedClass,
   primaryButtonClass,
+  quietLinkClass,
 } from "@/components/ui";
 import { listCountries, placeLabel } from "@/lib/countries";
 import { formatDateRange } from "@/lib/format";
@@ -75,15 +76,29 @@ export default async function TripPage({ params }: Props) {
                       {stop.visitStatus &&
                         ` · ${VISIT_STATUS_LABELS[stop.visitStatus]}`}
                     </p>
+                    {!stop.placeRef && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Edit to choose the place from the list for shops and
+                        regional suggestions.
+                      </p>
+                    )}
                   </div>
                 </div>
-                <form action={deleteStop}>
-                  <input type="hidden" name="tripId" value={trip.id} />
-                  <input type="hidden" name="stopId" value={stop.id} />
-                  <button type="submit" className={dangerLinkClass}>
-                    Remove
-                  </button>
-                </form>
+                <div className="flex shrink-0 items-center gap-x-3">
+                  <Link
+                    href={`/trips/${trip.id}/stops/${stop.id}/edit`}
+                    className={quietLinkClass}
+                  >
+                    Edit
+                  </Link>
+                  <form action={deleteStop}>
+                    <input type="hidden" name="tripId" value={trip.id} />
+                    <input type="hidden" name="stopId" value={stop.id} />
+                    <button type="submit" className={dangerLinkClass}>
+                      Remove
+                    </button>
+                  </form>
+                </div>
               </li>
             ))}
           </ol>
@@ -98,7 +113,12 @@ export default async function TripPage({ params }: Props) {
       </section>
 
       <div className="mt-10">
-        <DeleteTripButton tripId={trip.id} />
+        <ConfirmDeleteButton
+          action={deleteTrip}
+          fields={{ tripId: trip.id }}
+          label="Delete trip"
+          question="Delete this trip and all its stops?"
+        />
       </div>
     </main>
   );

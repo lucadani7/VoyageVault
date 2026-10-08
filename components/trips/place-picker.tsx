@@ -40,10 +40,10 @@ export function PlacePicker({
   // Point the map at the country.
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/places/country?code=${countryCode}`, {
+    fetch(`/api/v1/places/country?code=${countryCode}`, {
       signal: controller.signal,
     })
-      .then((response) => response.json())
+      .then((response) => (response.ok ? response.json() : { view: null }))
       .then((data: { view: CountryView | null }) => setView(data.view))
       .catch(() => {});
     return () => controller.abort();
@@ -59,7 +59,7 @@ export function PlacePicker({
       setStatus("loading");
       try {
         const response = await fetch(
-          `/api/places/search?country=${countryCode}&q=${encodeURIComponent(text)}`,
+          `/api/v1/places?country=${countryCode}&q=${encodeURIComponent(text)}`,
           { signal: controller.signal },
         );
         const data = (await response.json()) as { places: Place[] };

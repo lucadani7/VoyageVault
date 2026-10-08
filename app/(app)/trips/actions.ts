@@ -113,13 +113,18 @@ function rawPlace(formData: FormData) {
   };
 }
 
-export async function addStop(
+/**
+ * Adds a stop, or updates one when the form carries its id. A new stop
+ * leaves a fresh form behind; an edited one returns to the trip.
+ */
+export async function saveStop(
   previous: StopFormState,
   formData: FormData,
 ): Promise<StopFormState> {
   const user = await requireUser();
   const version = previous.version + 1;
   const tripId = text(formData, "tripId");
+  const stopId = text(formData, "stopId");
   const raw = {
     countryCode: text(formData, "countryCode"),
     place: rawPlace(formData),
@@ -142,6 +147,8 @@ export async function addStop(
 
   const trip = await getTrip(user.id, tripId);
   if (!trip) return fail("This trip no longer exists.");
+  const existing = stopId ? trip.stops.find((stop) => stop.id === stopId) : null;
+  if (stopId && !existing) return fail("This stop no longer exists.");
 
   const input = validateStop(raw);
   if (!input.ok) {
@@ -151,8 +158,7 @@ export async function addStop(
   }
   const { countryCode, place, visitStatus, arrivalDate, departureDate } = input.value;
 
-  await db.insert(tripStops).values({
-    tripId: trip.id,
+  const data = {
     countryCode,
     placeRef: place.ref,
     region: place.region,
@@ -162,9 +168,18 @@ export async function addStop(
     visitStatus,
     arrivalDate,
     departureDate,
-    position: trip.stops.length,
-  });
+  };
 
+  if (existing) {
+    await db
+      .update(tripStops)
+      .set(data)
+      .where(and(eq(tripStops.id, existing.id), eq(tripStops.tripId, trip.id)));
+    revalidatePath(`/trips/${trip.id}`);
+    redirect(`/trips/${trip.id}`);
+  }
+
+  await db.insert(tripStops).values({ ...data, tripId: trip.id });
   revalidatePath(`/trips/${trip.id}`);
   // Start the next stop where this one ended: stops usually follow on.
   return {

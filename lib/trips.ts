@@ -1,13 +1,9 @@
 import { and, asc, count, desc, eq, max, min, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { tripStops, trips } from "@/db/schema";
+import { isUuid } from "./validation";
 
-const UUID =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export function isUuid(value: string): boolean {
-  return UUID.test(value);
-}
+export { isUuid };
 
 /** A user's trips, newest first, with a summary of their stops. */
 export async function getTrips(userId: string) {

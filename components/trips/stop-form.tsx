@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { addStop, type StopFormState } from "@/app/(app)/trips/actions";
+import Link from "next/link";
+import {
+  saveStop,
+  type StopFormState,
+  type StopFormValues,
+} from "@/app/(app)/trips/actions";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { PlacePicker } from "@/components/trips/place-picker";
 import { VISIT_STATUS_LABELS, VISIT_STATUSES } from "@/lib/visit-status";
@@ -10,6 +15,7 @@ import {
   inputClass,
   labelClass,
   primaryButtonClass,
+  secondaryButtonClass,
 } from "@/components/ui";
 
 type Country = { code: string; name: string };
@@ -131,18 +137,27 @@ function StopFields({
   );
 }
 
+/** Adds a stop to a trip or, given `stopId` and its values, edits one. */
 export function StopForm({
   tripId,
   countries,
+  stopId,
+  initialValues,
 }: {
   tripId: string;
   countries: Country[];
+  stopId?: string;
+  initialValues?: StopFormValues;
 }) {
-  const [state, formAction, pending] = useActionState(addStop, initialState);
+  const [state, formAction, pending] = useActionState(saveStop, {
+    ...initialState,
+    values: initialValues ?? initialState.values,
+  });
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="tripId" value={tripId} />
+      {stopId && <input type="hidden" name="stopId" value={stopId} />}
 
       <StopFields
         key={state.version}
@@ -156,10 +171,15 @@ export function StopForm({
         </p>
       )}
 
-      <div>
+      <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={pending} className={primaryButtonClass}>
-          {pending ? "Adding…" : "Add stop"}
+          {pending ? "Saving…" : stopId ? "Save changes" : "Add stop"}
         </button>
+        {stopId && (
+          <Link href={`/trips/${tripId}`} className={secondaryButtonClass}>
+            Cancel
+          </Link>
+        )}
       </div>
     </form>
   );

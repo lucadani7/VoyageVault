@@ -126,6 +126,9 @@ export const decisionSchema = z.object({
   }),
 });
 
+/** True for a well-formed id; checked before any id reaches the database. */
+export const isUuid = (value: unknown) => z.guid().safeParse(value).success;
+
 /* ------------------------------ Results ----------------------------- */
 
 export type TripInput = z.output<typeof tripSchema>;

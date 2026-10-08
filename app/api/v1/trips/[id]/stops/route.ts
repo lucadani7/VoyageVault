@@ -32,7 +32,6 @@ export async function POST(request: Request, { params }: Context) {
     visitStatus,
     arrivalDate,
     departureDate,
-    position: trip.stops.length,
   });
 
   const updated = await getTrip(user.id, trip.id);
